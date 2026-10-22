@@ -2,8 +2,8 @@
 
 
 **Author:** Dashane James  
-**Lab Environment:** [e.g. VMware Workstation | Kali Linux | Metasploitable 2]  
-**Purpose:** [Demonstrate core SPL commands that cyber security analysts often use to parse through files and data.]
+**Lab Environment:** VMware Workstation | Kali Linux | Metasploitable 2 
+**Purpose:** Demonstrate core SPL commands that cyber security analysts often use to parse through files and data.10
 **Status:** 🔵 Completed
 
 ---
@@ -31,36 +31,23 @@
 ## 🛠️ Tools Used
 
 - **Nmap** — Used for both standard scanning and running NSE (Nmap Scripting Engine) scripts to detect and, in one case, actively exploit vulnerabilities
+- Splunk
 - **NSE (Nmap Scripting Engine)** — Ran default (`-sC`), targeted (`ftp-anon`, `smb-vuln*`), and broad (`vuln`) script categories against the target
 - **NVD (National Vulnerability Database)** — Referenced to research CVE details, CVSS scores, and attack vectors for confirmed vulnerabilities
 
 ---
 
-## 📁 Repository Structure
-
-```
-[Repo-Name]/
-├── README.md
-├── [folder-1]/
-│   ├── [file1.txt]        # Description of file
-│   └── [file2.md]         # Description of file
-├── [folder-2]/
-│   ├── [file3.md]         # Description of file
-│   └── [file4.txt]        # Description of file
-└── reports/
-    └── [final-report.md]  # Full assessment report
-```
-
 ---
 
 ## 🔬 Tasks / Assessments Performed
 
-### 1. [Key Spl Commands]
+### 1. Key Spl Commands
 For this task I 
 
 # Commands used
 
 index=main | stats count by source type
+
 <img width="857" height="208" alt="Screenshot 2026-09-22 141927" src="https://github.com/user-attachments/assets/dd3e6303-f448-44a1-8a37-e951d0ae7256" />
 
 index=main failed | table _time, user, src_ip
@@ -109,12 +96,12 @@ what is index=main
 
 
 
-### 2. [Find top 10 source IP's by event count]
+### 2. Find top 10 source IP's by event count
 For this task I ran the "index=main | stats count by src_ip | sort -count | head 10" search to be able to find the top 10 source Ip's by event count. The goal being to become familiarized with search language such as this to be able to efficiently use Splunk to parse through files and data.
 
 # Splunk command used
 
-[index=main | stats count by src_ip | sort -count | head 10]
+index=main | stats count by src_ip | sort -count | head 10
 
 <img width="854" height="181" alt="Screenshot 2026-09-23 173758" src="https://github.com/user-attachments/assets/9dbd4b5f-768b-4438-87d9-279306f1ce63" />
 
@@ -125,7 +112,7 @@ This search finds the top 10 IP addresses generating the most events, sorted hig
 
 
 
-### 3. [Filter events to a specific time range using the time picker]
+### 3. Filter events to a specific time range using the time picker
 [] 
 
 
@@ -139,12 +126,11 @@ This search finds the top 10 IP addresses generating the most events, sorted hig
 
 
 
+### 4. Create an alert that fires when failed login count exceeds 5 in 1 minute.
 
+In this task, I
 
-
-### 4. [Create an alert that fires when failed login count exceeds 5 in 1 minute.]
-In this task, I 
-#Command
+#Command used
 []
 
 # Output
@@ -162,7 +148,7 @@ In this task, I
 
 **Findings:** 
 
-During this lab I practiced core SPL commands used in real SOC environments and CySA+ exam scenarios. While the current dataset (nmap_services.txt) was limited to port scan output, running these searches against it demonstrated how Splunk ingests, indexes, and queries data regardless of the source type.
+During this lab I practiced core SPL commands used in real SOC environments. While the current dataset (nmap_services.txt) was limited to port scan output, running these searches against it demonstrated how Splunk ingests, indexes, and queries data regardless of the source type.
 
 The stats count by sourcetype and stats count by source commands confirmed the Nmap scan file was successfully indexed under sourcetype 'save1' with 2 events. These types of searches are used in production environments to monitor log source health — if a sourcetype suddenly drops to zero events, it signals a potential ingestion failure or a compromised system that stopped generating logs.
 
@@ -212,16 +198,6 @@ Based on findings, the following remediations would be recommended in a real env
 
 ---
 
-## 📚 CySA+ Exam Relevance
-
-This lab directly maps to the following CompTIA CySA+ (CS0-003) exam domains:
-
-| Domain | Coverage |
-
-| Security Operations (33%) | Hands-on use of Nmap and NSE scripts to perform reconnaissance and identify live services and misconfigurations |
-| Vulnerability Management (30%) | Running vulnerability-check scripts (`smb-vuln*`, `vuln`), interpreting results, and cross-referencing CVE/CVSS data from NVD |
-| Incident Response (20%) | Recognizing confirmed exploitation (root access via vsFTPd backdoor) as evidence of active compromise |
-| Reporting & Communication (17%) | Documenting findings by severity in a structured, readable format for technical and non-technical audiences |
 
 ---
 
@@ -269,10 +245,6 @@ sudo nmap --script vuln -Pn --disable-arp-ping -n 192.168.79.130
 ---
 
 ## 📌 About This Project
-
-[1-2 sentences about how this fits into your overall portfolio and career goals.]
-
-This repository is part of my broader cybersecurity portfolio demonstrating practical, hands-on vulnerability assessment skills from initial scanning through confirmed exploitation as I work toward a career as a cybersecurity analyst.
 
 This repository is important because here we have built up to the point of having live proof of the actual exploitation by an automated Nmap script for the CVE-2011-2523. In a past NVD task I researched this exact vulnerability with a CVSS score of 9.8 now this has come full circle and we found out how this exact vulnerability is exploited and root access was acheived. 
 
