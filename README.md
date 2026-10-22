@@ -3,7 +3,7 @@
 
 **Author:** Dashane James  
 **Lab Environment:** VMware Workstation | Kali Linux | Metasploitable 2 
-**Purpose:** Demonstrate core SPL commands that cyber security analysts often use to parse through files and data.10
+**Purpose:** Demonstrate core SPL commands that cyber security analysts often use to parse through files and data.
 **Status:** 🔵 Completed
 
 ---
