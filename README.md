@@ -3,14 +3,14 @@
 
 **Author:** Dashane James
 **Lab Environment:** VMware Workstation | Kali Linux | Metasploitable 2
-**Purpose:** Install Splunk Enterprise Free on Kali Linux, ingest log output files from previous labs, and run basic SPL searches to confirm data is indexed and searchable.
+**Purpose:** Demonstrate core SPL commands that cybersecurity analysts use to parse log files, aggregate events by IP and user, and build detection queries for brute force and authentication-based threats.
 **Status:** 🔵 Completed
 
 ---
 
 ## 📋 Overview
 
-This repository documents the initial Splunk setup that opens the SIEM, log analysis, and incident response phase. I downloaded Splunk Enterprise Free directly from splunk.com using wget, installed it with dpkg, and brought up the web interface at http://localhost:8000. From there I ingested the Nmap scan output saved from an earlier lab and ran basic SPL searches to confirm the data was indexed correctly. The final step was building a simple column chart visualization from the event count data, which demonstrates the core SIEM workflow: ingest log data, query it, and surface it as a visual for analysis.
+This repository documents hands-on practice with Splunk's Search Processing Language using real log data ingested from the previous lab. I ran a series of SPL queries that form the foundation of day-to-day SOC analyst work: grouping events by sourcetype to understand what data is in the index, extracting and aggregating IP addresses to identify high-volume sources, filtering for authentication failures, and building a scheduled alert that fires when failed login counts exceed a threshold. The dataset at this stage was limited to Nmap scan output, which confirmed that the queries ran correctly and that any missing results were due to data gaps, not syntax errors. The same queries produce full detection results once authentication logs are flowing into the SIEM.
 
 ---
 
@@ -30,162 +30,203 @@ This repository documents the initial Splunk setup that opens the SIEM, log anal
 
 ## 🛠️ Tools Used
 
-- **Splunk Enterprise (Free):** Log aggregation, indexing, and search platform. Installed via wget .deb package directly from splunk.com. The free tier supports all core functionality used in this lab, with a 500MB daily ingest limit and hourly alert scheduling.
-- **wget / dpkg:** Used to download the Splunk .deb package from the Splunk website and install it on Kali Linux.
-- **Nmap output file (nmap_services.txt):** Log data from a previous lab, used as the first data source ingested into Splunk.
+- **Splunk Enterprise (Free):** Log aggregation and search platform. All queries in this lab ran against data indexed in the previous repository.
+- **SPL (Search Processing Language):** Splunk's query language for searching, filtering, aggregating, and transforming indexed event data.
 
 ---
 
 ## 🔬 Tasks / Assessments Performed
 
-### 1. Download and Install Splunk Enterprise Free
+### 1. Key SPL Commands
 
-I copied the wget download link for the .deb Linux version of Splunk Enterprise Free from the Splunk website, pasted it into the terminal, and ran the download. Once the file was on disk, I installed it with dpkg and started Splunk with the license accepted.
+For this task I ran four core SPL queries against the indexed data to practice the search syntax analysts use most often in production environments.
 
-```bash
-# Install the downloaded .deb package
-sudo dpkg -i splunk-*.deb
-
-# Start Splunk and accept the license on first run
-sudo /opt/splunk/bin/splunk start --accept-license --run-as-root
-```
-
-<img width="671" height="365" alt="Screenshot 2026-09-17 141131" src="https://github.com/user-attachments/assets/ddaeb829-a42e-4d13-883b-6f07d9f21f87" />
-
-<img width="327" height="224" alt="Screenshot 2026-09-17 141205" src="https://github.com/user-attachments/assets/0225e8f9-621a-4000-90de-2af60a4a0942" />
-
-**Output:** Splunk downloaded successfully via wget and installed without errors. The `splunk start` command accepted the license and initialized the instance, establishing a local connection accessible at http://127.0.0.1:8000.
-
-### 2. Access Splunk at http://localhost:8000
-
-<img width="325" height="253" alt="Screenshot 2026-09-17 222727" src="https://github.com/user-attachments/assets/44a0f2ea-7d60-4087-b040-d5f9437ef2fd" />
-
-<img width="329" height="257" alt="Screenshot 2026-09-17 222555" src="https://github.com/user-attachments/assets/80443ee6-dbee-4d9e-9ae3-014e6c586a0b" />
-
-<img width="851" height="373" alt="Screenshot 2026-09-17 150533" src="https://github.com/user-attachments/assets/6e8ca33a-757f-4bd2-8bc4-a1d97c03ad4d" />
-
-**Output:** Splunk's web interface loaded successfully at http://127.0.0.1:8000. The login page, Splunk home dashboard, and search interface were all accessible without any additional configuration. This confirmed the installation was complete and the service was running correctly.
-
-### 3. Ingest Previous Nmap Output Files
-
-I clicked the Add Data tab on the Splunk home page and uploaded nmap_services.txt, the Nmap scan output file saved during a previous lab. Splunk automatically assigned it a sourcetype and indexed the contents.
-
-<img width="650" height="293" alt="Screenshot 2026-09-17 154617" src="https://github.com/user-attachments/assets/2972b744-7343-4102-8989-e835ae6b89f3" />
-
-<img width="805" height="338" alt="Screenshot 2026-09-17 154915" src="https://github.com/user-attachments/assets/0b22ec2a-403b-454a-a1eb-96a292fb446b" />
-
-**Output:** Splunk indexed nmap_services.txt and returned 2 events. The first event showed the scan summary (1 IP address scanned, host up), and the second showed the full scan initiation including the exact command used, the target IP, and the open ports with their service versions. This confirmed Splunk successfully parsed and indexed the Nmap output, making the scan data searchable within the SIEM.
-
-### 4. Run a Basic Search: index=main
+**Commands used:**
 
 ```
-index=main
+index=main | stats count by sourcetype
 ```
 
-<img width="853" height="322" alt="Screenshot 2026-09-17 155300" src="https://github.com/user-attachments/assets/991c14a3-cee1-403e-8158-4f5f304f38fd" />
-
-**Output:** Running `index=main` returned all indexed events. Since only one file had been ingested at this point, it returned the same 2 events from nmap_services.txt. This search is the starting point for any Splunk investigation: "show me everything in the main index." In a production SOC environment with dozens of log sources, this same search would return thousands of events across firewalls, endpoint logs, authentication systems, and network devices.
-
-### 5. Create a Simple Dashboard Showing Event Counts
+<img width="857" height="208" alt="Screenshot 2026-09-22 141927" src="https://github.com/user-attachments/assets/dd3e6303-f448-44a1-8a37-e951d0ae7256" />
 
 ```
-index=main | stats count by source
+index=main "failed" | table _time, user, src_ip
 ```
 
-<img width="854" height="336" alt="Screenshot 2026-09-17 155416" src="https://github.com/user-attachments/assets/87e5a452-65ff-4859-b395-7af330bd7e90" />
+<img width="857" height="185" alt="Screenshot 2026-09-22 144302" src="https://github.com/user-attachments/assets/dd571619-8b99-41f8-9f52-74a25d58e719" />
 
-**Output:** Running the search and switching to the Visualization tab rendered the results as a column chart. The chart showed one data source (nmap_services.txt) with 2 events, confirming the data was ingested and displayed correctly. This is a core SIEM dashboard function: in a real SOC, this view would show event volume across multiple log sources simultaneously, and a source suddenly dropping to zero events would indicate either a system going offline or a log forwarding failure, both of which warrant investigation.
+```
+index=main | stats count by src_ip | sort -count
+```
+
+<img width="858" height="179" alt="Screenshot 2026-09-22 215458" src="https://github.com/user-attachments/assets/8526c807-4d82-4449-b4ad-98b6b70d15d5" />
+
+```
+index=main EventCode=4625 | stats count by Account_Name | where count > 10
+```
+
+<img width="854" height="185" alt="Screenshot 2026-09-22 220202" src="https://github.com/user-attachments/assets/e183ded9-f0f9-4ad2-9725-0bdec4c905d6" />
+
+**Output:**
+
+`index=main | stats count by sourcetype` groups all indexed events by their assigned sourcetype and displays a count table. The result showed one sourcetype called 'save1' with 2 events, which is the sourcetype Splunk automatically assigned to the nmap_services.txt file during upload. In a production SOC this search would show multiple sourcetypes across firewall logs, Windows events, syslog, and IDS alerts, giving analysts a quick view of which log sources are actively feeding data into the SIEM.
+
+`index=main "failed" | table _time, user, src_ip` searches for the keyword "failed" and returns results formatted as a table with timestamp, user, and source IP columns. This returned no results because the current Nmap dataset contains no login events. In a real environment with authentication logs ingested, this search surfaces failed login attempts with enough context to identify the source and targeted account immediately.
+
+`index=main | stats count by src_ip | sort -count` counts events per IP address, sorted from highest to lowest. Splunk found the 2 events from the Nmap file but could not extract a structured src_ip field from plain Nmap text output, so the stats table returned empty. This is a data format issue, not a syntax issue. The same query against TCPDump or firewall log data returns a populated table showing exactly which IPs generated the most traffic.
+
+`index=main EventCode=4625 | stats count by Account_Name | where count > 10` is a Windows failed login detection query. EventCode 4625 is the Windows Security Event Log code for a failed authentication attempt. The search returned 0 events because no Windows event logs had been ingested yet. The logic is sound: group failed logins by account name and surface only accounts with more than 10 failures, which eliminates noise and focuses the output on accounts showing brute force patterns. This is one of the most common detection queries run in a Windows-heavy SOC environment.
+
+**Findings:**
+
+The queries all executed without syntax errors. Missing results were expected given the dataset. The `table _time, user, src_ip` construct shows how SPL structures output into named columns for readability. The `where count > 10` filter demonstrates threshold-based detection, which is the same logic used in alert configurations to reduce false positives.
+
+### 2. Find Top 10 Source IPs by Event Count
+
+For this task I ran the `index=main | stats count by src_ip | sort -count | head 10` search to find the top 10 source IPs by event count. Becoming fluent with IP aggregation searches is important because high-volume source IPs are one of the first indicators a SOC analyst looks at during a triage investigation.
+
+**Command used:**
+
+```
+index=main | stats count by src_ip | sort -count | head 10
+```
+
+<img width="854" height="181" alt="Screenshot 2026-09-23 173758" src="https://github.com/user-attachments/assets/9dbd4b5f-768b-4438-87d9-279306f1ce63" />
+
+**Output:**
+
+This search returned no results because the Nmap text output did not contain structured src_ip fields that Splunk could extract. The query syntax is correct. In a real SOC environment with TCPDump captures, firewall logs, or IDS alerts ingested, this search returns a sorted list showing which IPs generated the most events. A single IP generating thousands of events in a short window is a strong indicator of scanning, brute force, or denial-of-service activity and warrants immediate investigation.
+
+### 3. Filter Events to a Specific Time Range Using the Time Picker
+
+Splunk's time range picker sits in the top-right corner of the search bar and offers preset windows (Last 15 minutes, Last 60 minutes, Last 24 hours, All time) along with custom date and time range options. The same range can also be applied directly in SPL using the `earliest` and `latest` modifiers.
+
+**Commands used:**
+
+```
+# Last 15 minutes
+index=main earliest=-15m latest=now
+
+# Custom time window (example)
+index=main earliest="09/17/2026:14:00:00" latest="09/17/2026:16:00:00"
+```
+
+**Output:**
+
+Since the lab index contained only 2 events uploaded during a single session, switching between different time ranges confirmed that both events fell within the same upload window. Splunk normalized the timestamps from the Nmap output file and indexed them with their original scan time, not the upload time. This distinction matters in real investigations: when logs are uploaded from a file rather than streamed in real time, the event timestamps reflect when the activity actually occurred, which is what you want when reconstructing an incident timeline.
+
+Time filtering is used constantly in SOC work. Narrowing a search to the 15-minute window around an alert fires first helps reduce noise, while expanding to 24 hours or longer helps establish whether activity was isolated or part of a longer pattern.
+
+### 4. Create an Alert That Fires When Failed Login Count Exceeds 5
+
+For this task I configured a scheduled Splunk alert based on the Windows failed login detection query. Alerts convert a detection query into automated monitoring: instead of running the search manually, Splunk runs it on a schedule and notifies analysts when the trigger condition is met.
+
+**Detection query:**
+
+```
+index=main EventCode=4625 | stats count by Account_Name | where count > 5
+```
+
+**Alert configuration:**
+- Name: Failed Login Threshold Alert
+- Alert type: Scheduled (hourly, the maximum frequency available in Splunk Free)
+- Trigger condition: Number of Results is greater than 0
+- Action: Add to Triggered Alerts
+
+**Output:**
+
+The alert was saved and confirmed active in the Alerts section of Splunk. The query searches for Windows Event ID 4625 (failed login), groups failures by account name, and surfaces only accounts that have failed more than 5 times within the scheduled window. Since no Windows event logs were in the index yet, the alert had nothing to trigger on during this lab, but the configuration is production-ready.
+
+**Limitation:** Splunk Free supports only hourly scheduled alerts. A real brute force attack can compromise credentials in seconds, as demonstrated in the next repository. In a production SOC running Splunk Enterprise, this alert would be configured to execute every 60 seconds. The hourly limitation is specific to the free tier and is addressed in the Generating-Attacks-and-Defending-in-Splunk lab.
+
+This detection pattern is one of the most critical in a Windows environment. EventCode 4625 fires on every failed authentication attempt, making it the primary data source for brute force detection. Any account accumulating more than 5 failed logins within a short window is a strong indicator of a password spraying or brute force attack in progress.
 
 ---
 
 ## 📊 Key Findings Summary
 
-| Finding | Details |
-|---|---|
-| Splunk installation successful | Installed via dpkg from splunk.com .deb; web interface accessible at http://localhost:8000 |
-| Nmap scan data ingested successfully | nmap_services.txt indexed as sourcetype 'save1' with 2 events |
-| SPL search confirmed data is searchable | `index=main` returned both events with correct timestamps and content |
-| Dashboard visualization functional | `stats count by source` rendered as a column chart, confirming the SIEM's visual reporting capability |
+| SPL Query | Purpose | Result |
+|---|---|---|
+| `index=main \| stats count by sourcetype` | Verify data ingestion and identify log source types | 1 sourcetype ('save1'), 2 events from nmap_services.txt |
+| `index=main "failed" \| table _time, user, src_ip` | Surface failed authentication events with context | No results; no authentication logs in current index |
+| `index=main \| stats count by src_ip \| sort -count \| head 10` | Identify top IP addresses by event volume | No results; Nmap text output lacks structured src_ip fields |
+| `index=main EventCode=4625 \| stats count by Account_Name \| where count > 10` | Detect brute force by account-level failure count | No results; no Windows Event Logs ingested yet |
+| Failed Login Threshold Alert (scheduled) | Automate detection of credential-based attacks | Alert configured successfully; awaiting real authentication log data |
 
 ---
 
 ## 🗺️ MITRE ATT&CK Mapping
 
-The activity in this lab was defensive setup. The data ingested and the SPL queries run correspond to the following adversary techniques this SIEM configuration would detect:
+The detection logic built in this lab is designed to identify the following adversary techniques once the appropriate log sources are ingested:
 
-| SPL Query / Log Source | ATT&CK Tactic Targeted | Technique ID | Technique Name |
+| Detection Query | ATT&CK Tactic Targeted | Technique ID | Technique Name |
 |---|---|---|---|
-| Nmap scan output ingested for analysis | Discovery | T1046 | Network Service Discovery |
-| `index=main "failed"` (authentication failure search) | Credential Access | T1110.001 | Brute Force: Password Guessing |
-| `EventCode=4625` (Windows failed login detection) | Credential Access | T1110.001 | Brute Force: Password Guessing |
-| `stats count by src_ip` (high-volume source IP detection) | Discovery | T1046 | Network Service Discovery |
+| `stats count by src_ip \| sort -count` against network logs | Discovery | T1046 | Network Service Discovery |
+| `EventCode=4625 \| stats count by Account_Name \| where count > 5` | Credential Access | T1110.001 | Brute Force: Password Guessing |
+| `index=main "failed"` against SSH auth logs | Credential Access | T1110.001 | Brute Force: Password Guessing |
 
 ---
 
 ## 🛡️ Defensive Recommendations
 
-1. **Ingest authentication logs, not just scan output:** nmap_services.txt was a useful starting point, but SSH authentication logs, Windows Event Logs, and firewall logs are where the real attack patterns live. Adding these sources transforms Splunk from a search tool into a working detection platform.
+1. **Ingest Windows Event Logs to activate EventCode 4625 detection:** The failed login query and alert built in this lab have no data to work with until Windows Event Log forwarding is configured. In a production environment this is one of the highest-priority log sources to connect to the SIEM.
 
-2. **Configure real-time alerting in production:** Splunk Free supports only hourly scheduled alerts. In an actual SOC environment, critical detection rules for brute force or privilege escalation need to run on a 1-5 minute cycle, not a 60-minute one.
+2. **Upgrade to real-time alerting for critical detection rules:** The Splunk Free hourly scheduling limitation means a brute force attack could execute and succeed within the window between alert runs. Upgrading to a production SIEM with per-minute or real-time alerting is the correct approach for a live environment.
 
-3. **Set a data retention policy early:** Splunk's default behavior is to retain all indexed data indefinitely. Defining retention limits at initial setup prevents disk consumption from creeping up silently and potentially taking the SIEM offline during an active incident.
+3. **Pair IP aggregation alerts with a baseline:** The `stats count by src_ip` query is most useful when you know what normal traffic levels look like. Establishing a baseline of expected event volumes per IP makes it possible to set meaningful thresholds rather than arbitrary ones.
 
-4. **Forward logs from monitored hosts:** A SIEM can only detect what it receives. Setting up log forwarding from both Kali and Metasploitable into Splunk gives the authentication-based SPL queries in the next lab actual data to work with.
+4. **Use the `table` command in alert outputs:** Returning raw event counts is less useful than structured output showing the affected accounts, source IPs, and timestamps. Formatting alert results as a table reduces the time it takes an analyst to assess the scope of an incident.
 
 ---
 
 ## 🔑 Technical Notes
 
-```bash
-# Install Splunk Enterprise Free (.deb for Linux)
-sudo dpkg -i splunk-*.deb
-
-# Start Splunk on first launch (accepts the license, runs as root in lab)
-sudo /opt/splunk/bin/splunk start --accept-license --run-as-root
-
-# Access Splunk in a browser
-http://localhost:8000
-# or
-http://127.0.0.1:8000
-
-# Restart Splunk after configuration changes
-sudo /opt/splunk/bin/splunk restart
-```
-
-**Core SPL searches used in this lab:**
+**Core SPL syntax patterns:**
 
 ```
-# Return all events in the main index
+# Basic search (all events in main index)
 index=main
 
-# Count events by data source
-index=main | stats count by source
+# Keyword search with table output
+index=main "keyword" | table _time, field1, field2
 
-# Count events by sourcetype
-index=main | stats count by sourcetype
+# Aggregate events by a field, sorted by count
+index=main | stats count by <field> | sort -count
 
-# Search for failed authentication events
-index=main "failed" | table _time, user, src_ip
+# Filter aggregated results by count threshold
+index=main | stats count by <field> | where count > <threshold>
 
-# Windows failed login detection (EventCode 4625)
-index=main EventCode=4625 | stats count by Account_Name | where count > 10
+# Add a row limit to aggregated results
+index=main | stats count by <field> | sort -count | head 10
 
-# Top 10 source IPs by event count
-index=main | stats count by src_ip | sort -count | head 10
+# Extract structured fields from unstructured text using regex
+index=main | rex field=_raw "(?P<fieldname>pattern)"
+
+# Time-bounded search using SPL modifiers
+index=main earliest=-1h latest=now
 ```
+
+**Creating a scheduled alert:**
+1. Run the detection query in the search bar
+2. Save As > Alert
+3. Set Alert type to Scheduled and choose the frequency
+4. Set Trigger Conditions (e.g., Number of Results is greater than 0)
+5. Add an action (Add to Triggered Alerts, Send Email, etc.)
+
+**Splunk Free limitation:** The free tier caps scheduled alert frequency at once per hour. Any detection scenario requiring faster response (brute force, active exploitation) needs Splunk Enterprise or an alternative SIEM with real-time alerting.
 
 ---
 
 ## 📌 About This Project
 
-This repository opens the SIEM, log analysis, and incident response phase of the portfolio. The first two weeks established what the network looks like and documented the full attack chain from the attacker's perspective. Week 3 builds the detection side: the platforms a SOC analyst uses to monitor, search, and alert on exactly those techniques.
+This repository sits at the core of the SIEM, log analysis, and incident response phase. The ability to write effective SPL is what separates a SOC analyst who can use a SIEM from one who can build detection logic with it. The previous repository set up Splunk and confirmed data ingestion. This one establishes the query patterns. The next one, Generating-Attacks-and-Defending-in-Splunk, is where these same queries run against real attack traffic and return results that actually mean something.
 
-Splunk is the starting point because it simplifies the initial setup and puts the focus where it belongs, on log ingestion, query syntax, and detection logic. The data ingested here and the SPL commands practiced carry forward through the next repository, where the same Splunk instance is used to detect live attack traffic. From there the phase expands to a second SIEM platform, a network intrusion detection system, and a full incident response lifecycle.
+The detection gap in this lab, running well-formed queries against a dataset that lacks the right log sources, is intentional. Understanding why a query returns no results and knowing what log sources would make it work is exactly the diagnostic skill a SOC analyst needs when investigating why an alert did not fire.
 
 **Related repositories (SIEM, log analysis, and incident response phase):**
-- `Splunk-Search-Language`: Core SPL commands used by SOC analysts to parse log data, aggregate events by IP, and detect authentication-based threats
+- `Splunk-Free-Installation-and-Ingest-First-Logs`: Installed Splunk Enterprise and ingested the first log files, establishing the SIEM foundation this lab builds on
 - `Generating-Attacks-and-Defending-in-Splunk`: Generated live attack traffic (port scan and SSH brute force), ingested it into Splunk, and built automated detection alerts for both attack types
-- `Install-and-Understand-ELK-Stack`: Installed the ELK Stack on Kali Linux and documented the full Elasticsearch, Logstash, and Kibana data pipeline as a second SIEM platform
+- `Install-and-Understand-ELK-Stack`: Installed the ELK Stack on Kali Linux and documented the full Elasticsearch, Logstash, and Kibana pipeline as a second SIEM platform
 - `Install-Snort-IDS-and-Write-Detection-Rules`: Installed Snort 3, wrote a custom ICMP detection rule, and confirmed it fired on live traffic from Metasploitable
 - `Incident-Response-Simulation`: Walked through all seven NIST SP 800-61 phases using the SSH brute force attack as the scenario, from preparation through lessons learned
 - `Incident-Response-Report`: Formal incident report for the SSH brute force event, covering timeline, impact assessment, containment, root cause, and recommended controls
